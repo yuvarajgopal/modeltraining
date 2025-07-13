@@ -1,4 +1,5 @@
 from azure.ai.ml import MLClient
+from azure.ai.ml import load_job
 from azure.identity import DefaultAzureCredential
 import os
 
@@ -9,10 +10,11 @@ workspace_name = os.getenv("AZURE_WORKSPACE_NAME")
 credential = DefaultAzureCredential()
 ml_client = MLClient(credential, subscription_id, resource_group, workspace_name)
 
-# Submit pipeline job directly by YAML path
-pipeline_job = ml_client.jobs.create_or_update(
-    path="pipeline.yml"  # adjust if your pipeline YAML is named differently or in a folder
-)
+# Load pipeline job from YAML file
+pipeline_job = load_job(path="pipeline.yml")  # Adjust path if needed
 
-print(f"Pipeline submitted. Job ID: {pipeline_job.name}")
-print(f"View in Azure ML studio: https://ml.azure.com/experiments/{pipeline_job.experiment_name}/runs/{pipeline_job.name}?wsid=/subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}")
+# Submit the job to Azure ML workspace
+returned_job = ml_client.jobs.create_or_update(pipeline_job)
+
+print(f"Pipeline submitted. Job ID: {returned_job.name}")
+print(f"View in Azure ML studio: https://ml.azure.com/experiments/{returned_job.experiment_name}/runs/{returned_job.name}?wsid=/subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}")
