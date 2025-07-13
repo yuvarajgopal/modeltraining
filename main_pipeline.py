@@ -1,44 +1,57 @@
-from azureml.core import Workspace, Environment, Experiment
+from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig
 from azureml.core.compute import ComputeTarget
 from azureml.pipeline.core import Pipeline, PipelineData
 from azureml.pipeline.steps import PythonScriptStep
 
-# Load Azure ML workspace
+# Load workspace
 ws = Workspace.from_config()
 
-# Compute target (must exist)
+# Compute
 compute = ComputeTarget(workspace=ws, name='cpu-cluster')
 
 # Environment
 env = Environment.from_conda_specification(name='ml-pipeline-env', file_path='environment.yml')
 
-# Output from step 1 → input to step 2
-preprocess_output = PipelineData('train_data', datastore=ws.get_default_datastore())
+# Pipeline data between steps
+preprocessed_data = PipelineData('preprocessed_data', datastore=ws.get_default_datastore())
+trained_model = PipelineData('trained_model', datastore=ws.get_default_datastore())
 
-# Step 1 - Preprocessing
+# Step 1 - Preprocess
 step1 = PythonScriptStep(
-    name="preprocess-data",
+    name="Preprocess Data",
     script_name="preprocess.py",
     source_directory="src",
-    outputs=[preprocess_output],
+    outputs=[preprocessed_data],
     compute_target=compute,
     environment=env,
     allow_reuse=True
 )
 
-# Step 2 - Training
+# Step 2 - Train
 step2 = PythonScriptStep(
-    name="train-model",
+    name="Train Model",
     script_name="train.py",
     source_directory="src",
-    inputs=[preprocess_output],
-    arguments=['train.csv'],
+    inputs=[preprocessed_data],
+    outputs=[trained_model],
     compute_target=compute,
     environment=env,
     allow_reuse=True
 )
 
-pipeline = Pipeline(workspace=ws, steps=[step1, step2])
-experiment = Experiment(ws, 'iris-ml-pipeline')
+# Step 3 - Register Model
+step3 = PythonScriptStep(
+    name="Register Model",
+    script_name="register.py",
+    source_directory="src",
+    inputs=[trained_model],
+    compute_target=compute,
+    environment=env,
+    allow_reuse=True
+)
+
+# Create pipeline
+pipeline = Pipeline(workspace=ws, steps=[step1, step2, step3])
+experiment = Experiment(workspace=ws, name='iris-pipeline')
 run = experiment.submit(pipeline)
 run.wait_for_completion(show_output=True)
