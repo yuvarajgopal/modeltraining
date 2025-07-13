@@ -3,7 +3,7 @@ name: Run Azure ML Pipeline
 on:
   push:
     branches:
-      - main  # or your default branch
+      - develop  # or your default branch
 
 jobs:
   run-aml-pipeline:
