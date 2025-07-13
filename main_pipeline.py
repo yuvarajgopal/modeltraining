@@ -1,57 +1,62 @@
-from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig
-from azureml.core.compute import ComputeTarget
-from azureml.pipeline.core import Pipeline, PipelineData
-from azureml.pipeline.steps import PythonScriptStep
+from azure.ai.ml import dsl, command
+from azure.ai.ml.entities import Environment
+from azure.ai.ml.constants import AssetTypes
 
-# Load workspace
-ws = Workspace.from_config()
+# Define your compute name
+compute_name = "cpu-cluster"  # Change if needed
 
-# Compute
-compute = ComputeTarget(workspace=ws, name='cpu-cluster')
+# Define command components inline
+def get_preprocess_step():
+    return command(
+        name="preprocess_step",
+        display_name="Preprocess Data",
+        description="Preprocess raw input data",
+        command="python preprocess.py",
+        environment=Environment(
+            conda_file="environment.yml",
+            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
+            name="custom-pipeline-env"
+        ),
+        code="./src",
+        compute=compute_name
+    )
 
-# Environment
-env = Environment.from_conda_specification(name='ml-pipeline-env', file_path='environment.yml')
+def get_train_step():
+    return command(
+        name="train_step",
+        display_name="Train Model",
+        description="Train ML model",
+        command="python train.py",
+        environment=Environment(
+            conda_file="environment.yml",
+            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
+            name="custom-pipeline-env"
+        ),
+        code="./src",
+        compute=compute_name
+    )
 
-# Pipeline data between steps
-preprocessed_data = PipelineData('preprocessed_data', datastore=ws.get_default_datastore())
-trained_model = PipelineData('trained_model', datastore=ws.get_default_datastore())
+def get_register_step():
+    return command(
+        name="register_step",
+        display_name="Register Model",
+        description="Register trained model to workspace",
+        command="python register.py",
+        environment=Environment(
+            conda_file="environment.yml",
+            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
+            name="custom-pipeline-env"
+        ),
+        code="./src",
+        compute=compute_name
+    )
 
-# Step 1 - Preprocess
-step1 = PythonScriptStep(
-    name="Preprocess Data",
-    script_name="preprocess.py",
-    source_directory="src",
-    outputs=[preprocessed_data],
-    compute_target=compute,
-    environment=env,
-    allow_reuse=True
+@dsl.pipeline(
+    compute=compute_name,
+    description="Full ML pipeline: preprocess → train → register"
 )
+def my_pipeline():
+    preprocess = get_preprocess_step()()
+    train = get_train_step()().set_dependencies([preprocess])
+    register = get_register_step()().set_dependencies([train])
 
-# Step 2 - Train
-step2 = PythonScriptStep(
-    name="Train Model",
-    script_name="train.py",
-    source_directory="src",
-    inputs=[preprocessed_data],
-    outputs=[trained_model],
-    compute_target=compute,
-    environment=env,
-    allow_reuse=True
-)
-
-# Step 3 - Register Model
-step3 = PythonScriptStep(
-    name="Register Model",
-    script_name="register.py",
-    source_directory="src",
-    inputs=[trained_model],
-    compute_target=compute,
-    environment=env,
-    allow_reuse=True
-)
-
-# Create pipeline
-pipeline = Pipeline(workspace=ws, steps=[step1, step2, step3])
-experiment = Experiment(workspace=ws, name='iris-pipeline')
-run = experiment.submit(pipeline)
-run.wait_for_completion(show_output=True)

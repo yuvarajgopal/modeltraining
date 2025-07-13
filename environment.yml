@@ -1,10 +1,11 @@
-name: ml-pipeline-env
+name: my-env
+channels:
+  - defaults
 dependencies:
   - python=3.8
-  - scikit-learn
-  - pandas
   - pip
   - pip:
-    - azureml-core
-    - azureml-defaults
-    - joblib
+      - azure-ai-ml
+      - pandas
+      - scikit-learn
+
