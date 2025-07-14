@@ -5,11 +5,14 @@ from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 import os
 
-# --- Configuration ---
-# Replace with your actual Azure ML Workspace details
-subscription_id = "<YOUR_SUBSCRIPTION_ID>"
-resource_group = "<YOUR_RESOURCE_GROUP>"
-workspace_name = "<YOUR_WORKSPACE_NAME>"
+
+custom_env = Environment(
+    name="custom-pipeline-env",
+    description="Environment from environment.yml",
+    image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
+    conda_file="environment.yml",
+)
+
 
 # Define your compute name
 compute_name = "cpu-cluster"  # <<< IMPORTANT: CHANGE THIS TO YOUR AZURE ML COMPUTE CLUSTER NAME
