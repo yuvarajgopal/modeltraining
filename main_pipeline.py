@@ -56,7 +56,6 @@ def get_register_step():
     description="Full ML pipeline: preprocess → train → register"
 )
 def my_pipeline():
-    preprocess = get_preprocess_step()()
-    train = get_train_step()().set_dependencies([preprocess])
-    register = get_register_step()().set_dependencies([train])
-
+    preprocess = get_preprocess_step() 
+    train = get_train_step().set_dependencies([preprocess])
+    register = get_register_step().set_dependencies([train])
