@@ -1,11 +1,10 @@
 from azure.ai.ml import dsl, command
-from azure.ai.ml.constants import AssetTypes
 
-compute_name = "cpu-cluster"
+compute_name = "cpu-cluster"  # ✅ Change this if you use a different compute target
 
 @dsl.pipeline(
     compute=compute_name,
-    description="Pipeline with preprocess → train → register"
+    description="My ML pipeline: preprocess → train → register"
 )
 def my_pipeline():
     preprocess = command(
@@ -13,7 +12,7 @@ def my_pipeline():
         command="python preprocess.py",
         code="./src",
         compute=compute_name,
-        environment="custom-pipeline-env",  # Use registered name only
+        environment="custom-pipeline-env"  # Must match registered env name
     )()
 
     train = command(
@@ -21,7 +20,7 @@ def my_pipeline():
         command="python train.py",
         code="./src",
         compute=compute_name,
-        environment="custom-pipeline-env",
+        environment="custom-pipeline-env"
     )()
 
     register = command(
@@ -29,9 +28,10 @@ def my_pipeline():
         command="python register.py",
         code="./src",
         compute=compute_name,
-        environment="custom-pipeline-env",
+        environment="custom-pipeline-env"
     )()
 
+    # Set step dependencies
     train.set_dependencies([preprocess])
     register.set_dependencies([train])
 
