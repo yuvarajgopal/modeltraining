@@ -9,6 +9,11 @@ subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 resource_group = os.getenv("AZURE_RESOURCE_GROUP")
 workspace_name = os.getenv("AZURE_WORKSPACE_NAME")
 
+print("SUB:", os.getenv("AZURE_SUBSCRIPTION_ID"))
+print("RG:", os.getenv("AZURE_RESOURCE_GROUP"))
+print("WS:", os.getenv("AZURE_WORKSPACE_NAME"))
+
+
 credential = DefaultAzureCredential()
 ml_client = MLClient(credential, subscription_id, resource_group, workspace_name)
 
