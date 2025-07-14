@@ -53,16 +53,15 @@ def get_register_step():
     description="Pipeline with preprocess, train, register"
 )
 def my_pipeline():
-    # Create jobs by calling components
-    preprocess_job = get_preprocess_step()  # ✅ job
-    train_job = get_train_step()            # ✅ job
-    register_job = get_register_step()      # ✅ job
+    # Call the component to create jobs (note the second ())
+    preprocess_job = get_preprocess_step()()
+    train_job = get_train_step()()
+    register_job = get_register_step()()
 
     # Set dependencies
     train_job.set_dependencies([preprocess_job])
     register_job.set_dependencies([train_job])
 
-    # Return the final job if needed
     return {
         "preprocess": preprocess_job.outputs,
         "train": train_job.outputs,
