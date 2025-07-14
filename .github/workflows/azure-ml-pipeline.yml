@@ -1,9 +1,38 @@
-- name: Set up Python
-  uses: actions/setup-python@v4
-  with:
-    python-version: '3.8'
+name: Run Azure ML Pipeline
 
-- name: Install Azure ML v2 SDK
-  run: |
-    pip install --upgrade pip
-    pip install azure-ai-ml
+on:
+  push:
+    branches:
+      - develop  # or 'main' if you're using main branch
+
+jobs:
+  submit-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install Azure ML v2 SDK
+      run: |
+        pip install --upgrade pip
+        pip install azure-ai-ml
+
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Submit pipeline to Azure ML
+      env:
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_WORKSPACE_NAME: ${{ secrets.AZURE_WORKSPACE_NAME }}
+      run: |
+        python run_pipeline.py
+
