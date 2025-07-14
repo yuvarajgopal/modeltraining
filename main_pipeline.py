@@ -50,12 +50,15 @@ def get_register_step():
         code="./src",
         compute=compute_name
     )
-
 @dsl.pipeline(
     compute=compute_name,
     description="Full ML pipeline: preprocess → train → register"
 )
 def my_pipeline():
-    preprocess = get_preprocess_step() 
-    train = get_train_step().set_dependencies([preprocess])
-    register = get_register_step().set_dependencies([train])
+    preprocess = get_preprocess_step()()   # Call component to create job
+    train = get_train_step()()             # Call component to create job
+    train.set_dependencies([preprocess])
+
+    register = get_register_step()()       # Call component to create job
+    register.set_dependencies([train])
+
