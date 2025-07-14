@@ -2,63 +2,70 @@ from azure.ai.ml import dsl, command
 from azure.ai.ml.entities import Environment
 from azure.ai.ml.constants import AssetTypes
 
-# Define your compute name
-compute_name = "cpu-cluster"  # Change if needed
+# Define your compute
+compute_name = "cpu-cluster"  # Replace with your actual compute
 
-# Define command components inline
+# Shared environment
+env = Environment(
+    name="custom-pipeline-env",
+    description="Custom environment from environment.yml",
+    image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
+    conda_file="environment.yml"
+)
+
+# Define component functions
 def get_preprocess_step():
     return command(
-        name="preprocess_step",
-        display_name="Preprocess Data",
-        description="Preprocess raw input data",
-        command="python preprocess.py",
-        environment=Environment(
-            conda_file="environment.yml",
-            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
-            name="custom-pipeline-env"
-        ),
+        name="preprocess",
+        display_name="Preprocess Step",
+        description="Preprocessing script",
         code="./src",
-        compute=compute_name
+        command="python preprocess.py",
+        environment=env,
+        compute=compute_name,
     )
 
 def get_train_step():
     return command(
-        name="train_step",
-        display_name="Train Model",
-        description="Train ML model",
-        command="python train.py",
-        environment=Environment(
-            conda_file="environment.yml",
-            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
-            name="custom-pipeline-env"
-        ),
+        name="train",
+        display_name="Training Step",
+        description="Train the model",
         code="./src",
-        compute=compute_name
+        command="python train.py",
+        environment=env,
+        compute=compute_name,
     )
 
 def get_register_step():
     return command(
-        name="register_step",
-        display_name="Register Model",
-        description="Register trained model to workspace",
-        command="python register.py",
-        environment=Environment(
-            conda_file="environment.yml",
-            image="mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04",
-            name="custom-pipeline-env"
-        ),
+        name="register",
+        display_name="Register Step",
+        description="Register the model",
         code="./src",
-        compute=compute_name
+        command="python register.py",
+        environment=env,
+        compute=compute_name,
     )
+
+# Define pipeline using @dsl.pipeline
 @dsl.pipeline(
     compute=compute_name,
-    description="Full ML pipeline: preprocess → train → register"
+    description="Pipeline with preprocess, train, register"
 )
 def my_pipeline():
-    preprocess = get_preprocess_step()()   # Call component to create job
-    train = get_train_step()()             # Call component to create job
-    train.set_dependencies([preprocess])
+    # Create jobs by calling components
+    preprocess_job = get_preprocess_step()  # ✅ job
+    train_job = get_train_step()            # ✅ job
+    register_job = get_register_step()      # ✅ job
 
-    register = get_register_step()()       # Call component to create job
-    register.set_dependencies([train])
+    # Set dependencies
+    train_job.set_dependencies([preprocess_job])
+    register_job.set_dependencies([train_job])
+
+    # Return the final job if needed
+    return {
+        "preprocess": preprocess_job.outputs,
+        "train": train_job.outputs,
+        "register": register_job.outputs
+    }
 
